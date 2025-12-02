@@ -180,7 +180,71 @@ classdef ReConArmClass < handle
                 q_solutions(end).valid = true;
             end
         end
+        %%
+        function q_solutions = ik_pose(this, p, theta23_des)
+            % Inverse kinematics for position + desired theta23
+            % p = [x; y; z] desired end-effector position
+            % theta23_des = desired (theta2 + theta4)
+            % returns struct array with fields:
+            %   q     : [theta1; theta2; theta4; d3]
+            %   valid : boolean
+            
+            px = p(1); py = p(2); pz = p(3);
         
+            a3 = this.a3;
+            d1 = this.d1;
+            theta23 = theta23_des;
+        
+            c23 = cos(theta23);
+            s23 = sin(theta23);
+        
+            % 1) theta1 from XY projection (same as before, robust)
+            theta1 = atan2(-py, -px);
+        
+            % 2) R from position equation:
+            % R = a3*c23 - d3*sin(theta2) = -(px*cos(theta1) + py*sin(theta1))
+            R = -( px*cos(theta1) + py*sin(theta1) );
+        
+            % 3) N and C from FK equations:
+            % N = a3*c23 - R = d3*sin(theta2)
+            % C = d1 - a3*s23 - pz = d3*cos(theta2)
+            N = a3*c23 - R;
+            C = d1 - a3*s23 - pz;
+        
+            sq = N^2 + C^2;
+            q_solutions = struct('q',{},'valid',{});
+            if sq < 0
+                return;  % numerically unreachable
+            end
+        
+            d3_pos =  sqrt(sq);
+            d3_neg = -d3_pos;
+        
+            candidates = [];
+            % allow both signs if you want; usually you want d3 >= 0
+            if d3_pos >= 0
+                candidates = [candidates d3_pos];
+            end
+            % comment this out if you *only* want positive d3:
+            % if d3_neg >= 0
+            %     candidates = [candidates d3_neg];
+            % end
+        
+            for k = 1:numel(candidates)
+                d3 = candidates(k);
+                if d3 ~= 0
+                    theta2 = atan2(N, C);  % since sin(theta2)=N/d3, cos(theta2)=C/d3
+                else
+                    theta2 = atan2(N, C);
+                end
+                theta4 = theta23 - theta2;
+        
+                q = [theta1; theta2; theta4; d3];
+                q_solutions(end+1).q = q; %#ok<AGROW>
+                q_solutions(end).valid = true;
+            end
+        end
+
         %% Cubic joint trajectory between two 4x1 joint vectors
         function Q = cubicTrajectory(this, q_init, q_final, t_total, N)
             q_init  = q_init(:);

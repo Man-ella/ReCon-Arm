@@ -3,7 +3,6 @@ This project focuses on demonstrating reduction/elimination in singularities and
 Conventional 3R positioning configurations suffer from kinematic singularities (e.g., elbow/shoulder alignment), causing:
 
 1. Loss of effective DOF and poor controllability
-
 2. Motion interruptions or erratic joint speeds
 3. Difficulties tracking long, smooth weld paths
 
